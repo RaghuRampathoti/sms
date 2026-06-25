@@ -23,4 +23,5 @@ public class SignupRequest {
     private String parentName;
     private String parentPhone;
     private String dateOfBirth; // yyyy-MM-dd
+    private String dateOfJoining; // yyyy-MM-dd
 }

@@ -19,7 +19,7 @@ function Modal({ title, onClose, children }) {
 const initForm = {
   fullName: '', username: '', email: '', password: '', phoneNumber: '',
   role: 'STUDENT', rollNumber: '', admissionNumber: '', classId: '',
-  parentName: '', parentPhone: '', dateOfBirth: ''
+  parentName: '', parentPhone: '', dateOfBirth: '', dateOfJoining: ''
 };
 
 export default function Students() {
@@ -27,6 +27,7 @@ export default function Students() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [classFilter, setClassFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(initForm);
   const [saving, setSaving] = useState(false);
@@ -46,7 +47,8 @@ export default function Students() {
       classId: student.schoolClass?.id || '',
       parentName: student.parentName || '',
       parentPhone: student.parentPhone || '',
-      dateOfBirth: student.dateOfBirth || ''
+      dateOfBirth: student.dateOfBirth || '',
+      dateOfJoining: student.dateOfJoining || ''
     });
     setShowModal(true);
   };
@@ -89,10 +91,11 @@ export default function Students() {
   };
 
   const filtered = students.filter(s =>
-    s.user?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
+    (s.user?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
     s.user?.username?.toLowerCase().includes(search.toLowerCase()) ||
     s.rollNumber?.toLowerCase().includes(search.toLowerCase()) ||
-    s.admissionNumber?.toLowerCase().includes(search.toLowerCase())
+    s.admissionNumber?.toLowerCase().includes(search.toLowerCase())) &&
+    (classFilter === '' || s.schoolClass?.id === Number(classFilter))
   );
 
   return (
@@ -109,16 +112,27 @@ export default function Students() {
 
       <div className="card">
         <div className="card-header">
-          <div style={{ position: 'relative', width: 280 }}>
-            <FiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              id="student-search"
-              className="sms-input"
-              style={{ paddingLeft: 36 }}
-              placeholder="Search students…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <div style={{ position: 'relative', width: 280 }}>
+              <FiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                id="student-search"
+                className="sms-input"
+                style={{ paddingLeft: 36 }}
+                placeholder="Search students…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+            <select 
+              className="sms-input sms-select" 
+              style={{ width: '200px' }}
+              value={classFilter} 
+              onChange={e => setClassFilter(e.target.value)}
+            >
+              <option value="">All Classes</option>
+              {classes.map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
+            </select>
           </div>
           <span className="badge badge-info">{filtered.length} results</span>
         </div>
@@ -224,18 +238,7 @@ export default function Students() {
                   }} 
                 />
               </div>
-              <div className="sms-form-group">
-                <label className="sms-label">Email *</label>
-                <input 
-                  className="sms-input" 
-                  type="email" 
-                  required 
-                  pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$"
-                  title="Email must end with @gmail.com"
-                  value={form.email} 
-                  onChange={e => setForm({ ...form, email: e.target.value })} 
-                />
-              </div>
+
               <div className="sms-form-group">
                 <label className="sms-label">Password *</label>
                 <input className="sms-input" type="password" required value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
@@ -258,6 +261,10 @@ export default function Students() {
               <div className="sms-form-group">
                 <label className="sms-label">Date of Birth</label>
                 <input className="sms-input" type="date" value={form.dateOfBirth} onChange={e => setForm({ ...form, dateOfBirth: e.target.value })} />
+              </div>
+              <div className="sms-form-group">
+                <label className="sms-label">Date of Joining</label>
+                <input className="sms-input" type="date" value={form.dateOfJoining} onChange={e => setForm({ ...form, dateOfJoining: e.target.value })} />
               </div>
               <div className="sms-form-group">
                 <label className="sms-label">Parent Name</label>

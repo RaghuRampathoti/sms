@@ -14,5 +14,6 @@ public class DashboardStatsDTO {
     private long totalSubjects;
     private long pendingLeaves;
     private double todayAttendancePercentage;
+    private double teacherAttendancePercentage;
     private List<Map<String, Object>> recentAnnouncements;
 }

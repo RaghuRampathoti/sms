@@ -11,7 +11,8 @@ const statDefs = [
   { key: 'totalClasses', label: 'Total Classes', icon: <FiBookOpen />, color: 'emerald' },
   { key: 'totalSubjects', label: 'Total Subjects', icon: <FiBook />, color: 'amber' },
   { key: 'pendingLeaves', label: 'Pending Leaves', icon: <FiCalendar />, color: 'rose' },
-  { key: 'todayAttendancePercentage', label: "Today's Attendance", icon: <FiCheckSquare />, color: 'violet', format: v => `${v.toFixed(1)}%` },
+  { key: 'todayAttendancePercentage', label: "Student Attendance", icon: <FiCheckSquare />, color: 'violet', format: v => `${v.toFixed(1)}%` },
+  { key: 'teacherAttendancePercentage', label: "Teacher Attendance", icon: <FiTrendingUp />, color: 'fuchsia', format: v => `${v.toFixed(1)}%` },
 ];
 
 export default function Dashboard() {
@@ -24,6 +25,7 @@ export default function Dashboard() {
       .catch(() => setStats({
         totalStudents: 0, totalTeachers: 0, totalClasses: 0,
         totalSubjects: 0, pendingLeaves: 0, todayAttendancePercentage: 0,
+        teacherAttendancePercentage: 0,
         recentAnnouncements: []
       }))
       .finally(() => setLoading(false));

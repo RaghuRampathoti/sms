@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getTimetableByClass, createTimetable, deleteTimetable, getClasses, getSubjects, getTeachers } from '../api';
-import { FiPlus, FiTrash2, FiClock, FiX } from 'react-icons/fi';
+import { useAuth } from '../AuthContext';
+import { FiPlus, FiTrash2, FiClock, FiX, FiEdit2 } from 'react-icons/fi';
 
 const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const DAY_COLORS = {
@@ -13,6 +14,7 @@ const DAY_COLORS = {
 };
 
 export default function Timetable() {
+  const { user } = useAuth();
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [teachers, setTeachers] = useState([]);
@@ -20,7 +22,7 @@ export default function Timetable() {
   const [timetable, setTimetable] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ schoolClass: { id: '' }, subject: { id: '' }, teacher: { id: '' }, dayOfWeek: 'MONDAY', startTime: '', endTime: '', periodNo: '' });
+  const [form, setForm] = useState({ id: null, schoolClass: { id: '' }, subject: { id: '' }, teacher: { id: '' }, dayOfWeek: 'MONDAY', startTime: '', endTime: '', periodNo: '' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -41,6 +43,7 @@ export default function Timetable() {
     setSaving(true);
     try {
       await createTimetable({
+        id: form.id || undefined,
         schoolClass: { id: Number(selectedClass) },
         subject: { id: Number(form.subject.id) },
         teacher: { id: Number(form.teacher.id) },
@@ -50,7 +53,7 @@ export default function Timetable() {
         periodNo: form.periodNo ? Number(form.periodNo) : null,
       });
       setShowModal(false);
-      setForm({ schoolClass: { id: '' }, subject: { id: '' }, teacher: { id: '' }, dayOfWeek: 'MONDAY', startTime: '', endTime: '', periodNo: '' });
+      setForm({ id: null, schoolClass: { id: '' }, subject: { id: '' }, teacher: { id: '' }, dayOfWeek: 'MONDAY', startTime: '', endTime: '', periodNo: '' });
       loadTimetable();
     } catch { }
     setSaving(false);
@@ -80,8 +83,11 @@ export default function Timetable() {
             <option value="">— Select Class —</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
           </select>
-          {selectedClass && (
-            <button id="add-timetable-btn" className="btn btn-primary" onClick={() => setShowModal(true)}>
+          {selectedClass && ['ROLE_ADMIN', 'ROLE_TEACHER'].includes(user?.role) && (
+            <button id="add-timetable-btn" className="btn btn-primary" onClick={() => {
+              setForm({ id: null, schoolClass: { id: '' }, subject: { id: '' }, teacher: { id: '' }, dayOfWeek: 'MONDAY', startTime: '', endTime: '', periodNo: '' });
+              setShowModal(true);
+            }}>
               <FiPlus /> Add Period
             </button>
           )}
@@ -120,12 +126,34 @@ export default function Timetable() {
                         {t.periodNo && <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>P{t.periodNo}</span>}
                       </div>
                     </div>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      style={{ padding: '4px 8px', marginTop: -2 }}
-                      onClick={async () => { if (confirm('Remove this period?')) { await deleteTimetable(t.id); loadTimetable(); } }}>
-                      <FiTrash2 size={12} />
-                    </button>
+                    {['ROLE_ADMIN', 'ROLE_TEACHER'].includes(user?.role) && (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="btn btn-sm"
+                          style={{ background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.3)', padding: '4px 8px', marginTop: -2 }}
+                          onClick={() => {
+                            setForm({
+                              id: t.id,
+                              schoolClass: { id: t.schoolClass?.id || selectedClass },
+                              subject: { id: t.subject?.id || '' },
+                              teacher: { id: t.teacher?.id || '' },
+                              dayOfWeek: t.dayOfWeek,
+                              startTime: t.startTime,
+                              endTime: t.endTime,
+                              periodNo: t.periodNo || ''
+                            });
+                            setShowModal(true);
+                          }}>
+                          <FiEdit2 size={12} />
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          style={{ padding: '4px 8px', marginTop: -2 }}
+                          onClick={async () => { await deleteTimetable(t.id); loadTimetable(); }}>
+                          <FiTrash2 size={12} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -138,7 +166,7 @@ export default function Timetable() {
         <div className="sms-modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="sms-modal">
             <div className="sms-modal-header flex-between">
-              <div className="sms-modal-title">Add Period to Timetable</div>
+              <div className="sms-modal-title">{form.id ? 'Edit Period' : 'Add Period to Timetable'}</div>
               <button onClick={() => setShowModal(false)} className="btn btn-secondary btn-sm"><FiX /></button>
             </div>
             <form onSubmit={handleSubmit}>
@@ -178,7 +206,7 @@ export default function Timetable() {
               </div>
               <div className="sms-modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? <span className="spinner" /> : 'Add Period'}</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? <span className="spinner" /> : (form.id ? 'Save Changes' : 'Add Period')}</button>
               </div>
             </form>
           </div>

@@ -3,6 +3,7 @@ import {
   getExams, createExam, deleteExam,
   getResultsByExam, createResult, getClasses, getSubjects
 } from '../api';
+import { useAuth } from '../AuthContext';
 import { FiPlus, FiTrash2, FiX, FiFileText } from 'react-icons/fi';
 import { getStudentsByClass } from '../api';
 
@@ -21,6 +22,7 @@ function Modal({ title, onClose, children }) {
 }
 
 export default function Exams() {
+  const { user } = useAuth();
   const [exams, setExams] = useState([]);
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -98,9 +100,11 @@ export default function Exams() {
           <h2 style={{ fontSize: 20, fontWeight: 700 }}>Exams & Results</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Manage examinations and student results</p>
         </div>
-        <button id="add-exam-btn" className="btn btn-primary" onClick={() => setShowExamModal(true)}>
-          <FiPlus /> Schedule Exam
-        </button>
+        {user?.role === 'ROLE_ADMIN' && (
+          <button id="add-exam-btn" className="btn btn-primary" onClick={() => setShowExamModal(true)}>
+            <FiPlus /> Schedule Exam
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
@@ -120,7 +124,7 @@ export default function Exams() {
         <div className="card">
           <table className="sms-table">
             <thead>
-              <tr><th>#</th><th>Exam Name</th><th>Class</th><th>Subject</th><th>Date</th><th>Max Marks</th><th>Actions</th></tr>
+              <tr><th>#</th><th>Exam Name</th><th>Class</th><th>Subject</th><th>Date</th><th>Max Marks</th>{user?.role === 'ROLE_ADMIN' && <th>Actions</th>}</tr>
             </thead>
             <tbody>
               {loading ? (
@@ -135,11 +139,13 @@ export default function Exams() {
                   <td style={{ color: 'var(--text-secondary)' }}>{e.subject?.subjectName}</td>
                   <td style={{ color: 'var(--text-secondary)' }}>{e.examDate}</td>
                   <td><span className="badge badge-warning">{e.maxMarks}</span></td>
-                  <td>
-                    <button className="btn btn-danger btn-sm" onClick={async () => { if (confirm('Delete exam?')) { await deleteExam(e.id); load(); } }}>
-                      <FiTrash2 />
-                    </button>
-                  </td>
+                  {user?.role === 'ROLE_ADMIN' && (
+                    <td>
+                      <button className="btn btn-danger btn-sm" onClick={async () => { if (confirm('Delete exam?')) { await deleteExam(e.id); load(); } }}>
+                        <FiTrash2 />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -159,11 +165,6 @@ export default function Exams() {
                     {exams.map(e => <option key={e.id} value={e.id}>{e.name} — {e.schoolClass?.className}</option>)}
                   </select>
                 </div>
-                {selectedExam && (
-                  <button className="btn btn-primary" onClick={() => setShowResultModal(true)}>
-                    <FiPlus /> Add Result
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -176,39 +177,58 @@ export default function Exams() {
               </div>
               <table className="sms-table">
                 <thead>
-                  <tr><th>#</th><th>Student</th><th>Marks Obtained</th><th>Max Marks</th><th>Grade</th><th>Remarks</th></tr>
+                  <tr><th>#</th><th>Student</th><th>Marks Obtained</th><th>Max Marks</th><th>Grade</th><th>Remarks</th>{user?.role === 'ROLE_TEACHER' && <th>Action</th>}</tr>
                 </thead>
                 <tbody>
-                  {results.length === 0 ? (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)' }}>No results entered yet</td></tr>
-                  ) : results.map((r, i) => {
+                  {students.length === 0 ? (
+                    <tr><td colSpan={7} style={{ textAlign: 'center', padding: 30, color: 'var(--text-muted)' }}>No students found for this class</td></tr>
+                  ) : students.map((s, i) => {
+                    const r = results.find(res => res.student?.id === s.id);
                     const exam = exams.find(e => e.id === Number(selectedExam));
-                    const pct = exam?.maxMarks ? ((r.marksObtained / exam.maxMarks) * 100).toFixed(1) : null;
+                    const pct = r && exam?.maxMarks ? ((r.marksObtained / exam.maxMarks) * 100).toFixed(1) : null;
                     return (
-                      <tr key={r.id}>
+                      <tr key={s.id}>
                         <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
-                        <td style={{ fontWeight: 600 }}>{r.student?.user?.fullName}</td>
+                        <td style={{ fontWeight: 600 }}>{s.user?.fullName} <span style={{fontSize: 12, color: 'var(--text-muted)'}}>({s.rollNumber})</span></td>
                         <td>
-                          <div>
-                            <span style={{ fontWeight: 700, fontSize: 16 }}>{r.marksObtained}</span>
-                            {pct && <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>({pct}%)</span>}
-                          </div>
-                          {pct && (
-                            <div className="progress-bar" style={{ width: 100, marginTop: 4 }}>
-                              <div className="progress-fill" style={{
-                                width: `${pct}%`,
-                                background: pct >= 75 ? 'var(--accent)' : pct >= 50 ? 'var(--warning)' : 'var(--danger)'
-                              }} />
+                          {r ? (
+                            <div>
+                              <span style={{ fontWeight: 700, fontSize: 16 }}>{r.marksObtained}</span>
+                              {pct && <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--text-muted)' }}>({pct}%)</span>}
+                              {pct && (
+                                <div className="progress-bar" style={{ width: 100, marginTop: 4 }}>
+                                  <div className="progress-fill" style={{
+                                    width: `${pct}%`,
+                                    background: pct >= 75 ? 'var(--accent)' : pct >= 50 ? 'var(--warning)' : 'var(--danger)'
+                                  }} />
+                                </div>
+                              )}
                             </div>
+                          ) : (
+                            <span style={{color: 'var(--text-muted)'}}>—</span>
                           )}
                         </td>
                         <td style={{ color: 'var(--text-muted)' }}>{exam?.maxMarks}</td>
                         <td>
-                          <span className={`badge ${r.grade === 'A' || r.grade === 'A+' ? 'badge-success' : r.grade === 'B' ? 'badge-info' : r.grade === 'C' ? 'badge-warning' : 'badge-danger'}`}>
-                            {r.grade || '—'}
-                          </span>
+                          {r ? (
+                            <span className={`badge ${r.grade === 'A' || r.grade === 'A+' ? 'badge-success' : r.grade === 'B' ? 'badge-info' : r.grade === 'C' ? 'badge-warning' : 'badge-danger'}`}>
+                              {r.grade || '—'}
+                            </span>
+                          ) : (
+                            <span style={{color: 'var(--text-muted)'}}>—</span>
+                          )}
                         </td>
-                        <td style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>{r.remarks || '—'}</td>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>{r ? (r.remarks || '—') : '—'}</td>
+                        {user?.role === 'ROLE_TEACHER' && (
+                          <td>
+                            <button className="btn btn-sm btn-secondary" onClick={() => {
+                              setResultForm({ exam: { id: selectedExam }, student: { id: s.id }, marksObtained: r ? r.marksObtained : '', grade: r ? r.grade : '', remarks: r ? r.remarks : '' });
+                              setShowResultModal(true);
+                            }}>
+                              {r ? 'Edit Result' : 'Enter Marks'}
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}

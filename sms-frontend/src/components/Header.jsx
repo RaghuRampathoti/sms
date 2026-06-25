@@ -1,5 +1,5 @@
-import { useLocation } from 'react-router-dom';
-import { FiBell, FiSearch } from 'react-icons/fi';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { FiBell, FiSearch, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../AuthContext';
 
 const pageTitles = {
@@ -18,9 +18,15 @@ const pageTitles = {
 
 export default function Header() {
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const page = pageTitles[location.pathname] || { title: 'SMS', sub: '' };
   const now = new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const handleLogout = () => {
+    signOut();
+    navigate('/login');
+  };
 
   return (
     <header className="sms-header">
@@ -42,6 +48,9 @@ export default function Header() {
         }}>
           {user?.role?.replace('ROLE_', '') || 'USER'}
         </div>
+        <button onClick={handleLogout} className="header-btn" title="Logout" style={{ marginLeft: 8, color: 'var(--danger)' }}>
+          <FiLogOut />
+        </button>
       </div>
     </header>
   );

@@ -63,6 +63,8 @@ export const deleteSubject = (id) => api.delete(`/subjects/${id}`);
 export const saveAttendance = (data) => api.post('/attendance', data);
 export const getAttendance = (params) => api.get('/attendance/filter', { params });
 export const getStudentAttendance = (studentId) => api.get(`/attendance/student/${studentId}`);
+export const saveTeacherAttendance = (data) => api.post('/attendance/teacher', data);
+export const getTeacherAttendance = (date) => api.get(`/attendance/teacher?date=${date}`);
 export const getDailyReportUrl = (classId, date) => `${API_BASE}/attendance/report/daily?classId=${classId}&date=${date}`;
 export const getMonthlyReportUrl = (studentId, month, year) => `${API_BASE}/attendance/report/monthly?studentId=${studentId}&month=${month}&year=${year}`;
 

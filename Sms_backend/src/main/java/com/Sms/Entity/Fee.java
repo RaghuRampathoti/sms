@@ -1,5 +1,6 @@
 package com.Sms.Entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -24,6 +25,7 @@ public class Fee {
     private Double amount;
 
     @Column(name = "due_date", nullable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate dueDate;
 
     @Column(name = "paid_amount")

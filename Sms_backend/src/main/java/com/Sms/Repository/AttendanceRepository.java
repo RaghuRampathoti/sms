@@ -9,6 +9,7 @@ import java.util.List;
 @Repository
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     List<Attendance> findBySchoolClassIdAndSubjectIdAndDateAndPeriod(Long classId, Long subjectId, LocalDate date, String period);
+    List<Attendance> findBySchoolClassIdAndDateAndPeriod(Long classId, LocalDate date, String period);
     List<Attendance> findByStudentId(Long studentId);
     List<Attendance> findByStudentIdAndDateBetween(Long studentId, LocalDate startDate, LocalDate endDate);
     List<Attendance> findBySchoolClassIdAndDate(Long classId, LocalDate date);

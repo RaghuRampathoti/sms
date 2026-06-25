@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "subjects")
+@Table(name = "subjects", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"class_id", "subject_code"})
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -18,7 +20,7 @@ public class Subject {
     @Column(name = "subject_name", nullable = false)
     private String subjectName;
 
-    @Column(name = "subject_code", unique = true, nullable = false)
+    @Column(name = "subject_code", nullable = false)
     private String subjectCode;
 
     @ManyToOne
