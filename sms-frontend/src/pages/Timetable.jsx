@@ -1,17 +1,9 @@
 import { useEffect, useState } from 'react';
-import { getTimetableByClass, createTimetable, deleteTimetable, getClasses, getSubjects, getTeachers } from '../api';
+import { getTimetableByClass, createTimetable, deleteTimetable, getClasses, getSubjects, getTeachers, getMyStudentProfile, generateFirstPeriods } from '../api';
 import { useAuth } from '../AuthContext';
-import { FiPlus, FiTrash2, FiClock, FiX, FiEdit2 } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiClock, FiX, FiEdit2, FiInfo } from 'react-icons/fi';
 
 const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-const DAY_COLORS = {
-  MONDAY: 'rgba(99,102,241,0.15)',
-  TUESDAY: 'rgba(14,165,233,0.15)',
-  WEDNESDAY: 'rgba(16,185,129,0.15)',
-  THURSDAY: 'rgba(245,158,11,0.15)',
-  FRIDAY: 'rgba(239,68,68,0.15)',
-  SATURDAY: 'rgba(139,92,246,0.15)',
-};
 
 export default function Timetable() {
   const { user } = useAuth();
@@ -25,10 +17,20 @@ export default function Timetable() {
   const [form, setForm] = useState({ id: null, schoolClass: { id: '' }, subject: { id: '' }, teacher: { id: '' }, dayOfWeek: 'MONDAY', startTime: '', endTime: '', periodNo: '' });
   const [saving, setSaving] = useState(false);
 
+  const isStudent = user?.role === 'ROLE_STUDENT';
+
   useEffect(() => {
-    Promise.all([getClasses(), getSubjects(), getTeachers()])
-      .then(([cr, sr, tr]) => { setClasses(cr.data); setSubjects(sr.data); setTeachers(tr.data); });
-  }, []);
+    if (isStudent) {
+      getMyStudentProfile().then(r => {
+         if (r.data?.schoolClass?.id) {
+           setSelectedClass(r.data.schoolClass.id.toString());
+         }
+      });
+    } else {
+      Promise.all([getClasses(), getSubjects(), getTeachers()])
+        .then(([cr, sr, tr]) => { setClasses(cr.data); setSubjects(sr.data); setTeachers(tr.data); });
+    }
+  }, [isStudent]);
 
   const loadTimetable = () => {
     if (!selectedClass) return;
@@ -67,32 +69,65 @@ export default function Timetable() {
 
   return (
     <div>
-      <div className="flex-between mb-6">
-        <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700 }}>Timetable Management</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Weekly class schedule</p>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <select
-            id="timetable-class"
-            className="sms-input sms-select"
-            style={{ width: 220 }}
-            value={selectedClass}
-            onChange={e => setSelectedClass(e.target.value)}
-          >
-            <option value="">— Select Class —</option>
-            {classes.map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
-          </select>
-          {selectedClass && ['ROLE_ADMIN', 'ROLE_TEACHER'].includes(user?.role) && (
-            <button id="add-timetable-btn" className="btn btn-primary" onClick={() => {
-              setForm({ id: null, schoolClass: { id: '' }, subject: { id: '' }, teacher: { id: '' }, dayOfWeek: 'MONDAY', startTime: '', endTime: '', periodNo: '' });
-              setShowModal(true);
-            }}>
-              <FiPlus /> Add Period
-            </button>
+      {/* Hero Banner */}
+      <div style={{ 
+        background: `linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%)`,
+        color: 'white',
+        borderRadius: '16px',
+        padding: '30px 40px',
+        marginBottom: '24px',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.1)',
+        animation: 'slideUp 0.4s ease'
+      }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--primary)', boxShadow: '0 0 20px var(--primary)' }}></div>
+        <div style={{ position: 'absolute', top: '-100px', right: '-50px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(var(--primary-rgb),0.15) 0%, rgba(var(--primary-rgb),0) 70%)' }}></div>
+        
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
+          <div>
+            <h1 style={{ fontSize: '2.1rem', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.2, margin: '0 0 8px 0' }}>
+              Your Weekly <span style={{ color: 'var(--primary-light)', textShadow: '0 0 15px var(--primary)' }}>Schedule</span>
+            </h1>
+            <p style={{ color: '#9ca3af', fontSize: '14px', margin: 0 }}>View and manage class timetables</p>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            {!isStudent && (
+              <select
+                id="timetable-class"
+                className="sms-input sms-select"
+                style={{ width: 220, background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
+                value={selectedClass}
+                onChange={e => setSelectedClass(e.target.value)}
+              >
+                <option value="" style={{ color: '#000' }}>— Select Class —</option>
+                {classes.map(c => <option key={c.id} value={c.id} style={{ color: '#000' }}>{c.className}</option>)}
+              </select>
+            )}
+            {selectedClass && ['ROLE_ADMIN', 'ROLE_TEACHER'].includes(user?.role) && (
+              <>
+                <button className="btn" style={{ background: '#3b82f6', color: 'white', border: 'none', boxShadow: '0 0 15px rgba(59, 130, 246,0.5)' }} onClick={async () => {
+                  try {
+                    await generateFirstPeriods(selectedClass);
+                    loadTimetable();
+                  } catch (e) {
+                    alert(e.response?.data || 'Failed to auto-generate');
+                  }
+                }}>
+                  <FiClock /> Auto-Assign P1
+                </button>
+                <button id="add-timetable-btn" className="btn" style={{ background: 'var(--primary)', color: 'white', border: 'none', boxShadow: '0 0 15px var(--primary)' }} onClick={() => {
+                  setForm({ id: null, schoolClass: { id: '' }, subject: { id: '' }, teacher: { id: '' }, dayOfWeek: 'MONDAY', startTime: '', endTime: '', periodNo: '' });
+                setShowModal(true);
+              }}>
+                <FiPlus /> Add Period
+              </button>
+              </>
           )}
         </div>
       </div>
+    </div>
 
       {!selectedClass ? (
         <div className="card flex-center" style={{ height: 200, flexDirection: 'column', gap: 12 }}>
@@ -102,35 +137,54 @@ export default function Timetable() {
       ) : loading ? (
         <div className="flex-center" style={{ height: 200 }}><div className="spinner" style={{ width: 40, height: 40 }} /></div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24, animation: 'slideUp 0.6s ease' }}>
           {DAYS.map(day => (
-            <div key={day} className="card">
-              <div className="card-header" style={{ background: DAY_COLORS[day] }}>
-                <div className="card-title" style={{ fontSize: 13 }}>{day}</div>
-                <span className="badge badge-info">{grouped[day]?.length || 0}</span>
+            <div key={day} style={{
+              background: 'var(--bg-card)',
+              borderRadius: '16px',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-sm)',
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                padding: '16px 20px', 
+                background: 'rgba(var(--primary-rgb), 0.05)', 
+                borderBottom: '1px solid var(--border)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{day}</div>
+                <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: 12, fontWeight: 600 }}>{grouped[day]?.length || 0} Periods</span>
               </div>
-              <div style={{ padding: '10px' }}>
+              <div style={{ padding: '16px' }}>
                 {grouped[day]?.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-muted)', fontSize: 13 }}>No periods</div>
+                  <div className="flex-center" style={{ padding: '30px 0', color: 'var(--text-muted)', fontSize: 14, flexDirection: 'column', gap: 8 }}>
+                    <FiInfo style={{ opacity: 0.3, fontSize: 24 }} />
+                    No classes scheduled
+                  </div>
                 ) : grouped[day].map(t => (
                   <div key={t.id} style={{
-                    padding: '10px 12px', borderRadius: 8, marginBottom: 8,
-                    background: 'rgba(99,102,241,0.05)', border: '1px solid var(--border)',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
-                  }}>
+                    padding: '16px', borderRadius: '12px', marginBottom: 12,
+                    background: 'var(--bg-card-2)', border: '1px solid var(--border)',
+                    borderLeft: '4px solid var(--primary)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    transition: 'var(--transition)'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                  >
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{t.subject?.subjectName}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.teacher?.user?.fullName}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--primary-light)', marginTop: 4 }}>
-                        {t.startTime} – {t.endTime}
-                        {t.periodNo && <span style={{ marginLeft: 6, color: 'var(--text-muted)' }}>P{t.periodNo}</span>}
+                      <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>{t.subject?.subjectName}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{t.teacher?.user?.fullName}</div>
+                      <div style={{ fontSize: 12, color: 'var(--primary-dark)', marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, background: 'rgba(var(--primary-rgb), 0.1)', padding: '4px 10px', borderRadius: '20px', width: 'fit-content' }}>
+                        <FiClock size={12} /> {t.startTime} – {t.endTime}
+                        {t.periodNo && <span style={{ color: 'var(--text-muted)' }}>• P{t.periodNo}</span>}
                       </div>
                     </div>
                     {['ROLE_ADMIN', 'ROLE_TEACHER'].includes(user?.role) && (
-                      <div style={{ display: 'flex', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 8 }}>
                         <button
                           className="btn btn-sm"
-                          style={{ background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.3)', padding: '4px 8px', marginTop: -2 }}
+                          style={{ background: 'rgba(var(--primary-rgb), 0.1)', color: 'var(--primary-dark)', border: 'none', padding: '8px' }}
                           onClick={() => {
                             setForm({
                               id: t.id,
@@ -144,13 +198,17 @@ export default function Timetable() {
                             });
                             setShowModal(true);
                           }}>
-                          <FiEdit2 size={12} />
+                          <FiEdit2 size={14} />
                         </button>
                         <button
-                          className="btn btn-danger btn-sm"
-                          style={{ padding: '4px 8px', marginTop: -2 }}
-                          onClick={async () => { await deleteTimetable(t.id); loadTimetable(); }}>
-                          <FiTrash2 size={12} />
+                          className="btn btn-sm"
+                          style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '8px' }}
+                          onClick={() => {
+                            if (window.confirm('Delete this period?')) {
+                              deleteTimetable(t.id).then(loadTimetable);
+                            }
+                          }}>
+                          <FiTrash2 size={14} />
                         </button>
                       </div>
                     )}

@@ -11,9 +11,12 @@ import Attendance from './pages/Attendance';
 import Leaves from './pages/Leaves';
 import Holidays from './pages/Holidays';
 import Announcements from './pages/Announcements';
+import AcademicYears from './pages/AcademicYears';
 import Exams from './pages/Exams';
 import Fees from './pages/Fees';
+import Promotions from './pages/Promotions';
 import Timetable from './pages/Timetable';
+import Alumni from './pages/Alumni';
 import './index.css';
 
 function ProtectedLayout({ children }) {
@@ -59,6 +62,9 @@ function App() {
           <Route path="/exams" element={<ProtectedLayout><Exams /></ProtectedLayout>} />
           <Route path="/fees" element={<ProtectedLayout><Fees /></ProtectedLayout>} />
           <Route path="/timetable" element={<ProtectedLayout><Timetable /></ProtectedLayout>} />
+          <Route path="/promotions" element={<ProtectedLayout><Promotions /></ProtectedLayout>} />
+          <Route path="/academic-years" element={<ProtectedLayout><AcademicYears /></ProtectedLayout>} />
+          <Route path="/alumni" element={<ProtectedLayout><Alumni /></ProtectedLayout>} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>

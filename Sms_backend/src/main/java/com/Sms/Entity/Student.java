@@ -41,4 +41,10 @@ public class Student {
 
     @Column(name = "date_of_joining")
     private LocalDate dateOfJoining;
+
+    @Column(name = "student_aadhar_pic")
+    private String studentAadharPic;
+
+    @Column(name = "parent_aadhar_pic")
+    private String parentAadharPic;
 }

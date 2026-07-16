@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getTeachers, deleteTeacher, signup, updateTeacher } from '../api';
 import { FiUserPlus, FiTrash2, FiSearch, FiX, FiEdit } from 'react-icons/fi';
+import { useAuth } from '../AuthContext';
 
 function Modal({ title, onClose, children }) {
   return (
@@ -22,6 +23,8 @@ const initForm = {
 };
 
 export default function Teachers() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ROLE_ADMIN';
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -94,9 +97,11 @@ export default function Teachers() {
           <h2 style={{ fontSize: 20, fontWeight: 700 }}>Teacher Directory</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{teachers.length} faculty members</p>
         </div>
-        <button id="add-teacher-btn" className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <FiUserPlus /> Add Teacher
-        </button>
+        {isAdmin && (
+          <button id="add-teacher-btn" className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <FiUserPlus /> Add Teacher
+          </button>
+        )}
       </div>
 
       <div className="card">
@@ -124,14 +129,14 @@ export default function Teachers() {
                 <th>Qualification</th>
                 <th>Department</th>
                 <th>Joined</th>
-                <th>Actions</th>
+                {isAdmin && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40 }}><div className="spinner" /></td></tr>
+                <tr><td colSpan={isAdmin ? 7 : 6} style={{ textAlign: 'center', padding: 40 }}><div className="spinner" /></td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No teachers found</td></tr>
+                <tr><td colSpan={isAdmin ? 7 : 6} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No teachers found</td></tr>
               ) : filtered.map((t, i) => (
                 <tr key={t.id}>
                   <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
@@ -139,9 +144,11 @@ export default function Teachers() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{
                         width: 34, height: 34, borderRadius: '50%',
-                        background: 'linear-gradient(135deg, var(--secondary), var(--accent))',
+                        background: `linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%)`,
+                        color: '#ffffff',
+                        boxShadow: '0 4px 12px var(--primary)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 12, fontWeight: 700, flexShrink: 0
+                        fontSize: 14, fontWeight: 800, flexShrink: 0, textTransform: 'uppercase'
                       }}>
                         {t.user?.fullName?.charAt(0) || '?'}
                       </div>
@@ -155,16 +162,18 @@ export default function Teachers() {
                   <td style={{ color: 'var(--text-secondary)' }}>{t.qualification || '—'}</td>
                   <td><span className="badge badge-info">{t.department || '—'}</span></td>
                   <td style={{ color: 'var(--text-muted)', fontSize: 12.5 }}>{t.joiningDate || '—'}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-primary btn-sm" onClick={() => handleEdit(t)}>
-                        <FiEdit />
-                      </button>
-                      <button className="btn btn-danger btn-sm" onClick={() => handleDelete(t.id)}>
-                        <FiTrash2 />
-                      </button>
-                    </div>
-                  </td>
+                  {isAdmin && (
+                    <td>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn btn-primary btn-sm" onClick={() => handleEdit(t)}>
+                          <FiEdit />
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(t.id)}>
+                          <FiTrash2 />
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

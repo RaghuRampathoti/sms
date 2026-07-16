@@ -13,4 +13,9 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     List<Attendance> findByStudentId(Long studentId);
     List<Attendance> findByStudentIdAndDateBetween(Long studentId, LocalDate startDate, LocalDate endDate);
     List<Attendance> findBySchoolClassIdAndDate(Long classId, LocalDate date);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("DELETE FROM Attendance a WHERE a.subject.id = :subjectId")
+    void deleteBySubjectId(@org.springframework.data.repository.query.Param("subjectId") Long subjectId);
 }

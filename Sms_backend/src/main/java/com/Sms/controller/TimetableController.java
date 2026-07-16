@@ -39,4 +39,16 @@ public class TimetableController {
         timetableService.deleteTimetable(id);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/timetable/generate-first-periods/{classId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    public ResponseEntity<?> generateFirstPeriods(@PathVariable("classId") Long classId) {
+        try {
+            timetableService.generateFirstPeriodsForClass(classId);
+            return ResponseEntity.ok().build();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error: " + e.getClass().getName() + " - " + e.getMessage());
+        }
+    }
 }

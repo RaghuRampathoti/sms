@@ -1,56 +1,19 @@
 package com.Sms.service;
 
-import com.Sms.Dto.*;
 import com.Sms.Entity.*;
-import com.Sms.Enums.*;
+
 import com.Sms.Repository.*;
-import com.lowagie.text.Chunk;
-import com.lowagie.text.Document;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.Phrase;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class TimetableServiceImpl implements TimetableService {
-
-    
-
-
-
-    @Autowired private UserRepository userRepository;
-    @Autowired private StudentRepository studentRepository;
     @Autowired private TeacherRepository teacherRepository;
     @Autowired private SchoolClassRepository schoolClassRepository;
     @Autowired private SubjectRepository subjectRepository;
-    @Autowired private AttendanceRepository attendanceRepository;
-    @Autowired private TeacherAttendanceRepository teacherAttendanceRepository;
-    @Autowired private LeaveRequestRepository leaveRequestRepository;
-    @Autowired private HolidayRepository holidayRepository;
-    @Autowired private AnnouncementRepository announcementRepository;
-    @Autowired private ExamRepository examRepository;
-    @Autowired private ResultRepository resultRepository;
-    @Autowired private FeeRepository feeRepository;
     @Autowired private TimetableRepository timetableRepository;
-    @Autowired private org.springframework.security.crypto.password.PasswordEncoder encoder;
-
-
-
     @Override
 public Timetable saveTimetable(Timetable timetable) {
         if (timetable.getSchoolClass() != null && timetable.getSchoolClass().getId() != null) {
@@ -82,8 +45,46 @@ public List<Timetable> getTimetableByTeacher(Long teacherId) {
     }
 
     @Override
-public void deleteTimetable(Long id) {
+    public void deleteTimetable(Long id) {
         timetableRepository.deleteById(id);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void generateFirstPeriodsForClass(Long classId) {
+        SchoolClass sc = schoolClassRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Class not found"));
+
+        Teacher classTeacher = sc.getClassTeacher();
+        if (classTeacher == null) {
+            throw new RuntimeException("No class teacher assigned to this class");
+        }
+
+        List<Subject> subjects = subjectRepository.findBySchoolClassId(classId);
+        Subject subject = subjects.stream()
+                .filter(s -> s.getTeacher() != null && s.getTeacher().getId().equals(classTeacher.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Class teacher does not have any assigned subject for this class"));
+
+        String[] days = {"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"};
+
+        for (String day : days) {
+            List<Timetable> existing = timetableRepository.findBySchoolClassIdAndDayOfWeekAndPeriodNo(classId, day, 1);
+            if (existing != null && !existing.isEmpty()) {
+                timetableRepository.deleteAll(existing);
+            }
+
+            Timetable t = Timetable.builder()
+                    .schoolClass(sc)
+                    .teacher(classTeacher)
+                    .subject(subject)
+                    .dayOfWeek(day)
+                    .periodNo(1)
+                    .startTime("09:00")
+                    .endTime("10:00")
+                    .build();
+            timetableRepository.save(t);
+        }
     }
 
 }

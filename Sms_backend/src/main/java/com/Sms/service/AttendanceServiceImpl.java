@@ -1,6 +1,7 @@
 package com.Sms.service;
 
 import com.Sms.Dto.*;
+
 import com.Sms.Entity.*;
 import com.Sms.Enums.*;
 import com.Sms.Repository.*;
@@ -16,22 +17,16 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class AttendanceServiceImpl implements AttendanceService {
-
-    
-
-
 
     @Autowired private UserRepository userRepository;
     @Autowired private StudentRepository studentRepository;
@@ -40,17 +35,8 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Autowired private SubjectRepository subjectRepository;
     @Autowired private AttendanceRepository attendanceRepository;
     @Autowired private TeacherAttendanceRepository teacherAttendanceRepository;
-    @Autowired private LeaveRequestRepository leaveRequestRepository;
-    @Autowired private HolidayRepository holidayRepository;
-    @Autowired private AnnouncementRepository announcementRepository;
-    @Autowired private ExamRepository examRepository;
-    @Autowired private ResultRepository resultRepository;
-    @Autowired private FeeRepository feeRepository;
-    @Autowired private TimetableRepository timetableRepository;
-    @Autowired private org.springframework.security.crypto.password.PasswordEncoder encoder;
-
-
-
+    @Autowired private ClassSubstitutionRepository classSubstitutionRepository;
+    
     @Override
     @Transactional
 public void saveAttendance(AttendanceRecordDTO record, String recordedByUsername) {
@@ -58,10 +44,17 @@ public void saveAttendance(AttendanceRecordDTO record, String recordedByUsername
         SchoolClass sc = schoolClassRepository.findById(record.getClassId())
                 .orElseThrow(() -> new RuntimeException("Class not found"));
         
+        LocalDate date = LocalDate.parse(record.getDate());
+
         if ("DAY".equals(record.getPeriod())) {
             if (recordedBy != null && recordedBy.getRole() == Role.ROLE_TEACHER) {
-                if (sc.getClassTeacher() == null || !sc.getClassTeacher().getUser().getId().equals(recordedBy.getId())) {
-                    throw new RuntimeException("Access Denied: Only the assigned Class Teacher can take Day-wise attendance for this class.");
+                boolean isClassTeacher = sc.getClassTeacher() != null && sc.getClassTeacher().getUser().getId().equals(recordedBy.getId());
+                boolean isSubstitute = classSubstitutionRepository.findBySchoolClassIdAndDate(sc.getId(), date)
+                        .map(sub -> sub.getSubstituteTeacher().getUser().getId().equals(recordedBy.getId()))
+                        .orElse(false);
+
+                if (!isClassTeacher && !isSubstitute) {
+                    throw new RuntimeException("Access Denied: Only the assigned Class Teacher or Substitute can take Day-wise attendance for this class.");
                 }
             }
             // Ensure subject is null for day-wise attendance
@@ -72,8 +65,6 @@ public void saveAttendance(AttendanceRecordDTO record, String recordedByUsername
         if (record.getSubjectId() != null) {
             subj = subjectRepository.findById(record.getSubjectId()).orElse(null);
         }
-
-        LocalDate date = LocalDate.parse(record.getDate());
 
         for (AttendanceRecordDTO.StudentAttendance item : record.getRecords()) {
             Student stud = studentRepository.findById(item.getStudentId())
@@ -249,6 +240,29 @@ public void saveTeacherAttendance(TeacherAttendanceDTO record, String recordedBy
                         .build();
             }
             teacherAttendanceRepository.save(att);
+        }
+
+        if (record.getSubstitutions() != null) {
+            for (TeacherAttendanceDTO.SubstitutionRecord sub : record.getSubstitutions()) {
+                SchoolClass sc = schoolClassRepository.findById(sub.getClassId())
+                        .orElseThrow(() -> new RuntimeException("Class not found for substitution"));
+                Teacher substitute = teacherRepository.findById(sub.getSubstituteTeacherId())
+                        .orElseThrow(() -> new RuntimeException("Substitute teacher not found"));
+                
+                Optional<ClassSubstitution> existingSub = classSubstitutionRepository.findBySchoolClassIdAndDate(sc.getId(), date);
+                ClassSubstitution substitution;
+                if (existingSub.isPresent()) {
+                    substitution = existingSub.get();
+                    substitution.setSubstituteTeacher(substitute);
+                } else {
+                    substitution = ClassSubstitution.builder()
+                            .schoolClass(sc)
+                            .substituteTeacher(substitute)
+                            .date(date)
+                            .build();
+                }
+                classSubstitutionRepository.save(substitution);
+            }
         }
     }
 

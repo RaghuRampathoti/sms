@@ -1,62 +1,29 @@
 package com.Sms.service;
 
-import com.Sms.Dto.*;
 import com.Sms.Entity.*;
-import com.Sms.Enums.*;
+
 import com.Sms.Repository.*;
-import com.lowagie.text.Chunk;
-import com.lowagie.text.Document;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.Phrase;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class ClassServiceImpl implements ClassService {
-
-    
-
-
-
-    @Autowired private UserRepository userRepository;
-    @Autowired private StudentRepository studentRepository;
     @Autowired private TeacherRepository teacherRepository;
     @Autowired private SchoolClassRepository schoolClassRepository;
-    @Autowired private SubjectRepository subjectRepository;
-    @Autowired private AttendanceRepository attendanceRepository;
-    @Autowired private TeacherAttendanceRepository teacherAttendanceRepository;
-    @Autowired private LeaveRequestRepository leaveRequestRepository;
-    @Autowired private HolidayRepository holidayRepository;
-    @Autowired private AnnouncementRepository announcementRepository;
-    @Autowired private ExamRepository examRepository;
-    @Autowired private ResultRepository resultRepository;
-    @Autowired private FeeRepository feeRepository;
-    @Autowired private TimetableRepository timetableRepository;
-    @Autowired private org.springframework.security.crypto.password.PasswordEncoder encoder;
-
-
-
+    @Autowired private AcademicYearRepository academicYearRepository;
     @Override
 public SchoolClass saveClass(SchoolClass schoolClass) {
         if (schoolClass.getClassTeacher() != null && schoolClass.getClassTeacher().getId() != null) {
             Teacher teacher = teacherRepository.findById(schoolClass.getClassTeacher().getId())
                     .orElseThrow(() -> new RuntimeException("Teacher not found"));
             schoolClass.setClassTeacher(teacher);
+        }
+        if (schoolClass.getAcademicYear() != null && schoolClass.getAcademicYear().getId() != null) {
+            AcademicYear year = academicYearRepository.findById(schoolClass.getAcademicYear().getId())
+                    .orElseThrow(() -> new RuntimeException("Academic Year not found"));
+            schoolClass.setAcademicYear(year);
         }
         return schoolClassRepository.save(schoolClass);
     }
@@ -71,8 +38,12 @@ public SchoolClass findClassById(Long id) {
         return schoolClassRepository.findById(id).orElse(null);
     }
 
+    @Autowired private TimetableRepository timetableRepository;
+
     @Override
-public void deleteClass(Long id) {
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteClass(Long id) {
+        timetableRepository.deleteBySchoolClassId(id);
         schoolClassRepository.deleteById(id);
     }
 

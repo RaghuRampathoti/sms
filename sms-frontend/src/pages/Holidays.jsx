@@ -72,38 +72,75 @@ export default function Holidays() {
 
   return (
     <div>
-      <div className="flex-between mb-6">
-        <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700 }}>Holiday Calendar</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{holidays.length} holidays declared this academic year</p>
+      {/* Hero Banner */}
+      <div style={{ 
+        background: `linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%)`,
+        color: 'white',
+        borderRadius: '16px',
+        padding: '30px 40px',
+        marginBottom: '24px',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.1)',
+        animation: 'slideUp 0.4s ease'
+      }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--primary)', boxShadow: '0 0 20px var(--primary)' }}></div>
+        <div style={{ position: 'absolute', top: '-100px', right: '-50px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(var(--primary-rgb),0.15) 0%, rgba(var(--primary-rgb),0) 70%)' }}></div>
+        
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
+          <div>
+            <h1 style={{ fontSize: '2.1rem', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.2, margin: '0 0 8px 0' }}>
+              Academic <span style={{ color: 'var(--primary-light)', textShadow: '0 0 15px var(--primary)' }}>Calendar</span>
+            </h1>
+            <p style={{ color: '#9ca3af', fontSize: '14px', margin: 0 }}>View school holidays and important dates</p>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div style={{
+              padding: '8px 16px', borderRadius: '12px',
+              background: 'rgba(var(--primary-rgb),0.15)', border: `1px solid rgba(var(--primary-rgb),0.3)`,
+              display: 'flex', alignItems: 'center', gap: 8,
+              backdropFilter: 'blur(4px)'
+            }}>
+              <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>{holidays.length}</span>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Declared Holidays</span>
+            </div>
+            <button id="add-holiday-btn" className="btn" style={{ background: 'var(--primary)', color: 'white', border: 'none', boxShadow: '0 0 15px var(--primary)' }} onClick={() => setShowModal(true)}>
+              <FiPlus /> Add Holiday
+            </button>
+          </div>
         </div>
-        <button id="add-holiday-btn" className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <FiPlus /> Add Holiday
-        </button>
       </div>
 
       {loading ? (
         <div className="flex-center" style={{ height: 200 }}><div className="spinner" style={{ width: 40, height: 40 }} /></div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: 24, alignItems: 'start' }}>
-          <div className="card">
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '16px',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)',
+            overflow: 'hidden',
+            padding: 24
+          }}>
             <div className="flex-between mb-6">
-              <h3 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{months[month]} {year}</h3>
+              <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>{months[month]} {year}</h3>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-secondary btn-sm" onClick={handlePrevMonth}>&lt; Prev</button>
-                <button className="btn btn-secondary btn-sm" onClick={handleToday}>Today</button>
-                <button className="btn btn-secondary btn-sm" onClick={handleNextMonth}>Next &gt;</button>
+                <button className="btn btn-sm" style={{ background: 'var(--bg-card-2)', border: '1px solid var(--border)' }} onClick={handlePrevMonth}>&lt; Prev</button>
+                <button className="btn btn-sm" style={{ background: 'var(--bg-card-2)', border: '1px solid var(--border)' }} onClick={handleToday}>Today</button>
+                <button className="btn btn-sm" style={{ background: 'var(--bg-card-2)', border: '1px solid var(--border)' }} onClick={handleNextMonth}>Next &gt;</button>
               </div>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, textAlign: 'center', marginBottom: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, textAlign: 'center', marginBottom: 16 }}>
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: 13, textTransform: 'uppercase' }}>{day}</div>
+                <div key={day} style={{ fontWeight: 700, color: 'var(--text-muted)', fontSize: 13, textTransform: 'uppercase' }}>{day}</div>
               ))}
             </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
-              {blanksArray.map(b => <div key={`blank-${b}`} style={{ minHeight: 80, padding: 8 }} />)}
+              {blanksArray.map(b => <div key={`blank-${b}`} style={{ minHeight: 90, padding: 8 }} />)}
               
               {daysArray.map(day => {
                 const dayHolidays = getHolidaysForDate(day);
@@ -115,19 +152,19 @@ export default function Holidays() {
                 
                 return (
                   <div key={day} style={{ 
-                    minHeight: 80,
+                    minHeight: 90,
                     padding: '8px 12px', 
-                    borderRadius: 8, 
-                    background: isToday ? 'rgba(79, 70, 229, 0.1)' : 'var(--bg-secondary)',
-                    border: isToday ? '1px solid var(--primary)' : '1px solid var(--border-color)',
+                    borderRadius: 12, 
+                    background: isToday ? 'rgba(var(--primary-rgb), 0.1)' : 'var(--bg-card-2)',
+                    border: isToday ? '1px solid var(--primary)' : '1px solid var(--border)',
                     position: 'relative',
                     transition: 'all 0.2s',
                     cursor: hasDot ? 'pointer' : 'default'
                   }}>
                     <span style={{ 
-                      fontWeight: isToday ? '800' : '600', 
-                      color: isSunday ? '#ef4444' : (isToday ? 'var(--primary)' : 'var(--text-secondary)'),
-                      fontSize: 15
+                      fontWeight: isToday ? '800' : '700', 
+                      color: isSunday ? '#ef4444' : (isToday ? 'var(--primary-dark)' : 'var(--text-primary)'),
+                      fontSize: 16
                     }}>
                       {day}
                     </span>
@@ -141,16 +178,16 @@ export default function Holidays() {
                           display: 'flex',
                           justifyContent: 'center',
                           flexWrap: 'wrap',
-                          gap: 4
+                          gap: 6
                        }}>
                          {dayHolidays.map(h => (
-                           <div key={h.id} title={h.name} style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 6px rgba(239, 68, 68, 0.5)' }} />
+                           <div key={h.id} title={h.name} style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', boxShadow: '0 0 6px rgba(var(--primary-rgb), 0.5)' }} />
                          ))}
                          {festival && (
-                           <div title={festival} style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 6px rgba(245, 158, 11, 0.5)' }} />
+                           <div title={festival} style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px rgba(16, 185, 129, 0.5)' }} />
                          )}
                          {isSunday && dayHolidays.length === 0 && !festival && (
-                           <div title="Sunday" style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', opacity: 0.7 }} />
+                           <div title="Sunday" style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', opacity: 0.5 }} />
                          )}
                        </div>
                     )}
@@ -160,39 +197,55 @@ export default function Holidays() {
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-header mb-4">
-              <h4 style={{ margin: 0 }}>Holidays in {months[month]}</h4>
-              <span className="badge badge-info">{currentMonthHolidays.length}</span>
+          <div style={{
+            background: 'var(--bg-card)',
+            borderRadius: '16px',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-sm)',
+            overflow: 'hidden'
+          }}>
+            <div style={{ 
+              padding: '20px 24px', 
+              background: 'rgba(var(--primary-rgb), 0.05)', 
+              borderBottom: '1px solid var(--border)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+            }}>
+              <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Holidays in {months[month]}</h4>
+              <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: 12, fontWeight: 700 }}>{currentMonthHolidays.length}</span>
             </div>
             
-            {currentMonthHolidays.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>No holidays this month</p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {currentMonthHolidays.sort((a, b) => a.holidayDate.localeCompare(b.holidayDate)).map(h => (
-                  <div key={h.id} style={{ 
-                    padding: 12, 
-                    borderRadius: 8, 
-                    background: 'var(--bg-secondary)',
-                    borderLeft: '3px solid #ef4444',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 2 }}>{h.name}</div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                        {new Date(h.holidayDate).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}
+            <div style={{ padding: 20 }}>
+              {currentMonthHolidays.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>No holidays this month</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {currentMonthHolidays.sort((a, b) => a.holidayDate.localeCompare(b.holidayDate)).map(h => (
+                    <div key={h.id} style={{ 
+                      padding: 16, 
+                      borderRadius: 12, 
+                      background: 'var(--bg-card-2)',
+                      borderLeft: '4px solid var(--primary)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      borderRight: '1px solid var(--border)',
+                      borderTop: '1px solid var(--border)',
+                      borderBottom: '1px solid var(--border)'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4, color: 'var(--text-primary)' }}>{h.name}</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 500 }}>
+                          {new Date(h.holidayDate).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        </div>
                       </div>
+                      <button className="btn btn-sm" style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)', border: 'none', padding: 8 }} onClick={async () => { if (confirm('Delete holiday?')) { await deleteHoliday(h.id); load(); } }}>
+                        <FiTrash2 size={14} />
+                      </button>
                     </div>
-                    <button className="btn btn-sm" style={{ color: '#ef4444', background: 'transparent' }} onClick={async () => { if (confirm('Delete holiday?')) { await deleteHoliday(h.id); load(); } }}>
-                      <FiTrash2 />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

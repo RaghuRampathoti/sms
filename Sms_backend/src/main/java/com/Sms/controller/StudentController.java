@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -27,6 +28,12 @@ public class StudentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     public List<Student> getAllStudents() {
         return studentService.findAllStudents();
+    }
+
+    @GetMapping("/students/my")
+    @PreAuthorize("hasRole('STUDENT')")
+    public Student getMyStudentProfile(Principal principal) {
+        return studentService.findStudentByUsername(principal.getName());
     }
 
     @GetMapping("/students/{id}")
@@ -76,6 +83,8 @@ public class StudentController {
             } else {
                 existing.setDateOfJoining(null);
             }
+            existing.setStudentAadharPic(request.getStudentAadharPic());
+            existing.setParentAadharPic(request.getParentAadharPic());
             
             return studentService.saveStudent(existing);
         }

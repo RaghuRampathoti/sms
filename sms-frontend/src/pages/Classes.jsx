@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import {
   getClasses, createClass, deleteClass, updateClass,
   getSubjects, createSubject, deleteSubject, updateSubject,
-  getTeachers
+  getTeachers, getAcademicYears
 } from '../api';
-import { FiPlus, FiTrash2, FiX, FiEdit } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiX, FiEdit, FiLayers } from 'react-icons/fi';
 
 function Modal({ title, onClose, children }) {
   return (
@@ -24,11 +24,12 @@ export default function Classes() {
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [academicYears, setAcademicYears] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('classes');
   const [showClassModal, setShowClassModal] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
-  const [classForm, setClassForm] = useState({ className: '', classTeacher: { id: '' } });
+  const [classForm, setClassForm] = useState({ className: '', classTeacher: { id: '' }, academicYear: { id: '' } });
   const [subjectForm, setSubjectForm] = useState({ subjectName: '', subjectCode: '', schoolClass: { id: '' }, teacher: { id: '' } });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -37,7 +38,8 @@ export default function Classes() {
     setClassForm({
       id: c.id,
       className: c.className,
-      classTeacher: { id: c.classTeacher?.id || '' }
+      classTeacher: { id: c.classTeacher?.id || '' },
+      academicYear: { id: c.academicYear?.id || '' }
     });
     setShowClassModal(true);
   };
@@ -55,11 +57,12 @@ export default function Classes() {
 
   const load = () => {
     setLoading(true);
-    Promise.all([getClasses(), getSubjects(), getTeachers()])
-      .then(([cr, sr, tr]) => {
+    Promise.all([getClasses(), getSubjects(), getTeachers(), getAcademicYears()])
+      .then(([cr, sr, tr, ar]) => {
         setClasses(cr.data);
         setSubjects(sr.data);
         setTeachers(tr.data);
+        setAcademicYears(ar.data);
       })
       .finally(() => setLoading(false));
   };
@@ -72,6 +75,7 @@ export default function Classes() {
     try {
       const payload = { className: classForm.className };
       if (classForm.classTeacher.id) payload.classTeacher = { id: Number(classForm.classTeacher.id) };
+      if (classForm.academicYear.id) payload.academicYear = { id: Number(classForm.academicYear.id) };
       
       if (classForm.id) {
         await updateClass(classForm.id, payload);
@@ -79,7 +83,7 @@ export default function Classes() {
         await createClass(payload);
       }
       setShowClassModal(false);
-      setClassForm({ className: '', classTeacher: { id: '' } });
+      setClassForm({ className: '', classTeacher: { id: '' }, academicYear: { id: '' } });
       load();
     } catch (err) {
       setError(err.response?.data?.message || 'Error saving class');
@@ -122,7 +126,7 @@ export default function Classes() {
           <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Manage academic classes and subject assignments</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button id="add-class-btn" className="btn btn-secondary" onClick={() => { setClassForm({ className: '', classTeacher: { id: '' } }); setShowClassModal(true); }}><FiPlus /> New Class</button>
+          <button id="add-class-btn" className="btn btn-secondary" onClick={() => { setClassForm({ className: '', classTeacher: { id: '' }, academicYear: { id: '' } }); setShowClassModal(true); }}><FiPlus /> New Class</button>
           <button id="add-subject-btn" className="btn btn-primary" onClick={() => { setSubjectForm({ subjectName: '', subjectCode: '', schoolClass: { id: '' }, teacher: { id: '' } }); setShowSubjectModal(true); }}><FiPlus /> New Subject</button>
         </div>
       </div>
@@ -149,19 +153,27 @@ export default function Classes() {
         <div className="card">
           <table className="sms-table">
             <thead>
-              <tr><th>#</th><th>Class Name</th><th>Class Teacher</th><th>Actions</th></tr>
+              <tr><th>#</th><th>Class Name</th><th>Class Teacher</th><th>Academic Year</th><th>Actions</th></tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40 }}><div className="spinner" /></td></tr>
               ) : classes.length === 0 ? (
-                <tr><td colSpan={4} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No classes found. Add one!</td></tr>
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No classes found. Add one!</td></tr>
               ) : classes.map((c, i) => (
                 <tr key={c.id}>
                   <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ fontSize: 22 }}>🏫</div>
+                      <div style={{
+                        width: 38, height: 38, borderRadius: 10,
+                        background: 'rgba(var(--primary-rgb), 0.1)',
+                        color: 'var(--primary)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 18
+                      }}>
+                        <FiLayers />
+                      </div>
                       <span style={{ fontWeight: 600 }}>{c.className}</span>
                     </div>
                   </td>
@@ -171,11 +183,21 @@ export default function Classes() {
                       : <span style={{ color: 'var(--text-muted)' }}>Not assigned</span>}
                   </td>
                   <td>
+                    {c.academicYear ? <span className="badge badge-primary">{c.academicYear.startDate} to {c.academicYear.endDate}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                  </td>
+                  <td>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button className="btn btn-primary btn-sm" onClick={() => handleEditClass(c)}>
                         <FiEdit />
                       </button>
-                      <button className="btn btn-danger btn-sm" onClick={async () => { if (confirm('Delete class?')) { await deleteClass(c.id); load(); } }}>
+                      <button className="btn btn-danger btn-sm" onClick={async () => {
+                        try {
+                          await deleteClass(c.id);
+                          load();
+                        } catch (err) {
+                          console.error('Failed to delete class:', err);
+                        }
+                      }}>
                         <FiTrash2 />
                       </button>
                     </div>
@@ -210,7 +232,14 @@ export default function Classes() {
                       <button className="btn btn-primary btn-sm" onClick={() => handleEditSubject(s)}>
                         <FiEdit />
                       </button>
-                      <button className="btn btn-danger btn-sm" onClick={async () => { if (confirm('Delete subject?')) { await deleteSubject(s.id); load(); } }}>
+                      <button className="btn btn-danger btn-sm" onClick={async () => {
+                        try {
+                          await deleteSubject(s.id);
+                          load();
+                        } catch (err) {
+                          console.error('Failed to delete subject:', err);
+                        }
+                      }}>
                         <FiTrash2 />
                       </button>
                     </div>
@@ -235,6 +264,13 @@ export default function Classes() {
               <select className="sms-input sms-select" value={classForm.classTeacher.id} onChange={e => setClassForm({ ...classForm, classTeacher: { id: e.target.value } })}>
                 <option value="">— Select Teacher —</option>
                 {teachers.map(t => <option key={t.id} value={t.id}>{t.user?.fullName}</option>)}
+              </select>
+            </div>
+            <div className="sms-form-group">
+              <label className="sms-label">Academic Year</label>
+              <select className="sms-input sms-select" value={classForm.academicYear.id} onChange={e => setClassForm({ ...classForm, academicYear: { id: e.target.value } })}>
+                <option value="">— Select Academic Year —</option>
+                {academicYears.map(y => <option key={y.id} value={y.id}>{y.startDate} to {y.endDate}</option>)}
               </select>
             </div>
             <div className="sms-modal-footer">

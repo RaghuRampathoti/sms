@@ -1,6 +1,7 @@
 package com.Sms.service;
 
 import com.Sms.Dto.*;
+
 import com.Sms.Entity.*;
 import com.Sms.Enums.*;
 import com.Sms.Repository.*;
@@ -110,22 +111,23 @@ public class SmsServiceImpl implements SmsService {
                 schoolClass = schoolClassRepository.findById(signupRequest.getClassId())
                         .orElseThrow(() -> new RuntimeException("Error: Class not found."));
             }
-            Student student = Student.builder()
+            Student student = Student.builder()
                     .user(user)
                     .rollNumber(signupRequest.getRollNumber())
                     .admissionNumber(signupRequest.getAdmissionNumber())
                     .schoolClass(schoolClass)
                     .parentName(signupRequest.getParentName())
                     .parentPhone(signupRequest.getParentPhone())
-                    .dateOfBirth(LocalDate.parse(signupRequest.getDateOfBirth()))
+                    .dateOfBirth(signupRequest.getDateOfBirth() != null && !signupRequest.getDateOfBirth().isEmpty() ? LocalDate.parse(signupRequest.getDateOfBirth()) : null)
+                    .dateOfJoining(signupRequest.getDateOfJoining() != null && !signupRequest.getDateOfJoining().isEmpty() ? LocalDate.parse(signupRequest.getDateOfJoining()) : null)
+                    .studentAadharPic(signupRequest.getStudentAadharPic())
+                    .parentAadharPic(signupRequest.getParentAadharPic())
                     .build();
             studentRepository.save(student);
         }
 
         return user;
     }
-
-    @Override
     public User findUserByUsername(String username) {
         return userRepository.findByUsername(username).orElse(null);
     }

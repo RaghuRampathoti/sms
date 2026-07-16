@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
   getExams, createExam, deleteExam,
-  getResultsByExam, createResult, getClasses, getSubjects
+  getResultsByExam, createResult, getClasses, getSubjects, getSubjectsByClass,
+  getStudentsByClass, getResultsByStudent, getMyStudentProfile
 } from '../api';
+
 import { useAuth } from '../AuthContext';
 import { FiPlus, FiTrash2, FiX, FiFileText } from 'react-icons/fi';
-import { getStudentsByClass } from '../api';
 
 function Modal({ title, onClose, children }) {
   return (
@@ -23,13 +24,27 @@ function Modal({ title, onClose, children }) {
 
 export default function Exams() {
   const { user } = useAuth();
+  const isStudent = user?.role === 'ROLE_STUDENT';
   const [exams, setExams] = useState([]);
+  
+  // Student specific
+  const [myResults, setMyResults] = useState([]);
+  
+  useEffect(() => {
+    if (isStudent) {
+      getMyStudentProfile().then(r => {
+        if (r.data?.id) {
+           getResultsByStudent(r.data.id).then(res => setMyResults(res.data));
+        }
+      });
+    }
+  }, [isStudent]);
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('exams');
   const [showExamModal, setShowExamModal] = useState(false);
-  const [examForm, setExamForm] = useState({ name: '', schoolClass: { id: '' }, subject: { id: '' }, examDate: '', maxMarks: '' });
+  const [examForm, setExamForm] = useState({ name: '', schoolClass: { id: '' }, startDate: '', maxMarks: '' });
   const [saving, setSaving] = useState(false);
   // Results
   const [selectedExam, setSelectedExam] = useState('');
@@ -61,17 +76,46 @@ export default function Exams() {
     e.preventDefault();
     setSaving(true);
     try {
-      await createExam({
-        name: examForm.name,
-        examDate: examForm.examDate,
-        maxMarks: Number(examForm.maxMarks),
-        schoolClass: { id: Number(examForm.schoolClass.id) },
-        subject: { id: Number(examForm.subject.id) },
+      const classId = Number(examForm.schoolClass.id);
+      const res = await getSubjectsByClass(classId);
+      const classSubjects = (res.data || []).filter(s => s.subjectName?.toLowerCase() !== 'pet');
+      
+      if (classSubjects.length === 0) {
+        alert('No subjects found for this class. Please add subjects first.');
+        setSaving(false);
+        return;
+      }
+
+      let currentDate = new Date(examForm.startDate);
+      
+      const promises = classSubjects.map((subj) => {
+        // Skip Sundays
+        if (currentDate.getDay() === 0) {
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        const dateString = currentDate.toISOString().split('T')[0];
+        const payload = {
+          name: examForm.name,
+          examDate: dateString,
+          maxMarks: Number(examForm.maxMarks),
+          schoolClass: { id: classId },
+          subject: { id: subj.id }
+        };
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+        return createExam(payload);
       });
+
+      await Promise.all(promises);
+
       setShowExamModal(false);
-      setExamForm({ name: '', schoolClass: { id: '' }, subject: { id: '' }, examDate: '', maxMarks: '' });
+      setExamForm({ name: '', schoolClass: { id: '' }, startDate: '', maxMarks: '' });
       load();
-    } catch { }
+    } catch (err) { 
+      console.error(err);
+      alert('Failed to schedule exams. Make sure all dates are valid.');
+    }
     setSaving(false);
   };
 
@@ -92,6 +136,100 @@ export default function Exams() {
     } catch { }
     setSaving(false);
   };
+
+  if (isStudent) {
+     return (
+       <div>
+        {/* Hero Banner */}
+        <div style={{ 
+          background: `linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%)`,
+          color: 'white',
+          borderRadius: '16px',
+          padding: '30px 40px',
+          marginBottom: '24px',
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 20px 40px -10px rgba(0,0,0,0.1)',
+          animation: 'slideUp 0.4s ease'
+        }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--primary)', boxShadow: '0 0 20px var(--primary)' }}></div>
+          <div style={{ position: 'absolute', top: '-100px', right: '-50px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(var(--primary-rgb),0.15) 0%, rgba(var(--primary-rgb),0) 70%)' }}></div>
+          
+          <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
+            <div>
+              <h1 style={{ fontSize: '2.1rem', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.2, margin: '0 0 8px 0' }}>
+                Your Academic <span style={{ color: 'var(--primary-light)', textShadow: '0 0 15px var(--primary)' }}>Results</span>
+              </h1>
+              <p style={{ color: '#9ca3af', fontSize: '14px', margin: 0 }}>View your exam performance and grades</p>
+            </div>
+            
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <div style={{
+                  padding: '8px 16px', borderRadius: '12px',
+                  background: 'rgba(var(--primary-rgb),0.15)', border: `1px solid rgba(var(--primary-rgb),0.3)`,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  backdropFilter: 'blur(4px)'
+                }}>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--primary)' }}>{myResults.length}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Exams Completed</span>
+                </div>
+            </div>
+          </div>
+        </div>
+
+         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24, animation: 'slideUp 0.6s ease' }}>
+            {myResults.length === 0 ? (
+               <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 60, color: 'var(--text-muted)', background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border)' }}>
+                 <FiFileText style={{ fontSize: 40, opacity: 0.2, marginBottom: 16 }} />
+                 <div>No results published yet</div>
+               </div>
+            ) : myResults.map(r => (
+              <div key={r.id} style={{
+                background: 'var(--bg-card)',
+                borderRadius: '16px',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-sm)',
+                overflow: 'hidden',
+                transition: 'var(--transition)'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow), 0 0 15px rgba(var(--primary-rgb), 0.1)'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
+              >
+                <div style={{ 
+                  padding: '20px 24px', 
+                  background: 'rgba(var(--primary-rgb), 0.03)', 
+                  borderBottom: '1px solid var(--border)',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
+                }}>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>{r.exam?.name}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>{r.exam?.examDate}</div>
+                  </div>
+                  <span style={{ background: 'var(--primary)', color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: 12, fontWeight: 700, boxShadow: '0 0 10px rgba(var(--primary-rgb), 0.4)' }}>
+                    Grade {r.grade || '—'}
+                  </span>
+                </div>
+                <div style={{ padding: '20px 24px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>Subject</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{r.exam?.subject?.subjectName}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>Marks Obtained</span>
+                    <span style={{ fontWeight: 700, color: 'var(--primary-dark)', fontSize: 16 }}>{r.marksObtained} <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>/ {r.exam?.maxMarks}</span></span>
+                  </div>
+                  {r.remarks && (
+                    <div style={{ background: 'var(--bg-dark)', padding: '12px 16px', borderRadius: 8, fontSize: 13, color: 'var(--text-secondary)', borderLeft: '3px solid var(--primary)' }}>
+                      "{r.remarks}"
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+         </div>
+       </div>
+     );
+  }
 
   return (
     <div>
@@ -124,31 +262,44 @@ export default function Exams() {
         <div className="card">
           <table className="sms-table">
             <thead>
-              <tr><th>#</th><th>Exam Name</th><th>Class</th><th>Subject</th><th>Date</th><th>Max Marks</th>{user?.role === 'ROLE_ADMIN' && <th>Actions</th>}</tr>
+              <tr><th style={{ width: 60, textAlign: 'center' }}>#</th><th>Subject</th><th>Date</th><th>Max Marks</th>{user?.role === 'ROLE_ADMIN' && <th>Actions</th>}</tr>
             </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40 }}><div className="spinner" /></td></tr>
-              ) : exams.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No exams scheduled</td></tr>
-              ) : exams.map((e, i) => (
-                <tr key={e.id}>
-                  <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
-                  <td style={{ fontWeight: 600 }}>{e.name}</td>
-                  <td><span className="badge badge-primary">{e.schoolClass?.className}</span></td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{e.subject?.subjectName}</td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{e.examDate}</td>
-                  <td><span className="badge badge-warning">{e.maxMarks}</span></td>
-                  {user?.role === 'ROLE_ADMIN' && (
-                    <td>
-                      <button className="btn btn-danger btn-sm" onClick={async () => { if (confirm('Delete exam?')) { await deleteExam(e.id); load(); } }}>
-                        <FiTrash2 />
-                      </button>
-                    </td>
-                  )}
+            {loading ? (
+              <tbody><tr><td colSpan={user?.role === 'ROLE_ADMIN' ? 5 : 4} style={{ textAlign: 'center', padding: 40 }}><div className="spinner" /></td></tr></tbody>
+            ) : exams.length === 0 ? (
+              <tbody><tr><td colSpan={user?.role === 'ROLE_ADMIN' ? 5 : 4} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No exams scheduled</td></tr></tbody>
+            ) : Object.values(exams.reduce((acc, e) => {
+                  const key = `${e.name}_${e.schoolClass?.className}`;
+                  if (!acc[key]) acc[key] = { name: e.name, className: e.schoolClass?.className, exams: [] };
+                  acc[key].exams.push(e);
+                  return acc;
+              }, {})).map((group, gIdx) => (
+              <tbody key={gIdx}>
+                <tr>
+                  <td colSpan={user?.role === 'ROLE_ADMIN' ? 5 : 4} style={{ background: 'rgba(var(--primary-rgb), 0.05)', borderTop: '2px solid rgba(var(--primary-rgb), 0.2)', borderBottom: '1px solid rgba(var(--primary-rgb), 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ color: 'var(--primary-dark)', fontWeight: 800, fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{group.name}</span>
+                      <span style={{ background: 'var(--primary)', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: 11, fontWeight: 700 }}>Class {group.className}</span>
+                    </div>
+                  </td>
                 </tr>
-              ))}
-            </tbody>
+                {group.exams.map((e, i) => (
+                  <tr key={e.id}>
+                    <td style={{ color: 'var(--text-muted)', textAlign: 'center' }}>{i + 1}</td>
+                    <td style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{e.subject?.subjectName}</td>
+                    <td style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{e.examDate}</td>
+                    <td><span className="badge badge-primary" style={{ fontWeight: 800 }}>{e.maxMarks}</span></td>
+                    {user?.role === 'ROLE_ADMIN' && (
+                      <td>
+                        <button className="btn btn-sm" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', border: 'none', padding: '6px' }} onClick={async () => { if (confirm('Delete exam?')) { await deleteExam(e.id); load(); } }}>
+                          <FiTrash2 size={14} />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            ))}
           </table>
         </div>
       )}
@@ -255,19 +406,15 @@ export default function Exams() {
                 </select>
               </div>
               <div className="sms-form-group">
-                <label className="sms-label">Subject *</label>
-                <select className="sms-input sms-select" required value={examForm.subject.id} onChange={e => setExamForm({ ...examForm, subject: { id: e.target.value } })}>
-                  <option value="">— Select Subject —</option>
-                  {subjects.map(s => <option key={s.id} value={s.id}>{s.subjectName}</option>)}
-                </select>
-              </div>
-              <div className="sms-form-group">
-                <label className="sms-label">Exam Date</label>
-                <input className="sms-input" type="date" value={examForm.examDate} onChange={e => setExamForm({ ...examForm, examDate: e.target.value })} />
+                <label className="sms-label">Start Date *</label>
+                <input className="sms-input" type="date" required value={examForm.startDate} onChange={e => setExamForm({ ...examForm, startDate: e.target.value })} />
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Exams will be scheduled sequentially day-by-day (skipping Sundays) starting from this date for all subjects in the selected class.
+                </div>
               </div>
               <div className="sms-form-group">
                 <label className="sms-label">Max Marks</label>
-                <input className="sms-input" type="number" value={examForm.maxMarks} placeholder="100" onChange={e => setExamForm({ ...examForm, maxMarks: e.target.value })} />
+                <input className="sms-input" type="number" required value={examForm.maxMarks} placeholder="100" onChange={e => setExamForm({ ...examForm, maxMarks: e.target.value })} />
               </div>
             </div>
             <div className="sms-modal-footer">

@@ -35,6 +35,7 @@ public class ClassController {
         if (existing != null) {
             existing.setClassName(sc.getClassName());
             existing.setClassTeacher(sc.getClassTeacher());
+            existing.setAcademicYear(sc.getAcademicYear());
             return classService.saveClass(existing);
         }
         return null;

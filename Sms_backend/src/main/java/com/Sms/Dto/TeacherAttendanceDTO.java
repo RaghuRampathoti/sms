@@ -13,4 +13,12 @@ public class TeacherAttendanceDTO {
         private Long teacherId;
         private String status;
     }
+
+    private List<SubstitutionRecord> substitutions;
+
+    @Data
+    public static class SubstitutionRecord {
+        private Long classId;
+        private Long substituteTeacherId;
+    }
 }

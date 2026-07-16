@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getStudents, deleteStudent, signup, getClasses, updateStudent } from '../api';
-import { FiUserPlus, FiTrash2, FiSearch, FiX, FiEdit } from 'react-icons/fi';
+import { getStudents, deleteStudent, signup, getClasses, updateStudent, uploadFile } from '../api';
+import { FiUserPlus, FiTrash2, FiSearch, FiX, FiEdit, FiEye } from 'react-icons/fi';
 
 function Modal({ title, onClose, children }) {
   return (
@@ -19,7 +19,8 @@ function Modal({ title, onClose, children }) {
 const initForm = {
   fullName: '', username: '', email: '', password: '', phoneNumber: '',
   role: 'STUDENT', rollNumber: '', admissionNumber: '', classId: '',
-  parentName: '', parentPhone: '', dateOfBirth: '', dateOfJoining: ''
+  parentName: '', parentPhone: '', dateOfBirth: '', dateOfJoining: '',
+  studentAadharPic: '', parentAadharPic: ''
 };
 
 export default function Students() {
@@ -29,6 +30,8 @@ export default function Students() {
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
   const [form, setForm] = useState(initForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -48,7 +51,9 @@ export default function Students() {
       parentName: student.parentName || '',
       parentPhone: student.parentPhone || '',
       dateOfBirth: student.dateOfBirth || '',
-      dateOfJoining: student.dateOfJoining || ''
+      dateOfJoining: student.dateOfJoining || '',
+      studentAadharPic: student.studentAadharPic || '',
+      parentAadharPic: student.parentAadharPic || ''
     });
     setShowModal(true);
   };
@@ -100,14 +105,35 @@ export default function Students() {
 
   return (
     <div>
-      <div className="flex-between mb-6">
-        <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700 }}>Student Directory</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{students.length} students enrolled</p>
+      {/* Hero Banner */}
+      <div style={{ 
+        background: `linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%)`,
+        color: 'white',
+        borderRadius: '16px',
+        padding: '30px 40px',
+        marginBottom: '24px',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: '0 20px 40px -10px rgba(0,0,0,0.1)',
+        animation: 'slideUp 0.4s ease'
+      }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--primary)', boxShadow: '0 0 20px var(--primary)' }}></div>
+        <div style={{ position: 'absolute', top: '-100px', right: '-50px', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(var(--primary-rgb, var(--primary-rgb)), 0.15) 0%, rgba(var(--primary-rgb, var(--primary-rgb)), 0) 70%)' }}></div>
+        
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20 }}>
+          <div>
+            <h1 style={{ fontSize: '2.1rem', fontWeight: 800, letterSpacing: '-0.5px', lineHeight: 1.2, margin: '0 0 8px 0' }}>
+              Student <span style={{ color: 'var(--primary-light)', textShadow: '0 0 15px var(--primary)' }}>Directory</span>
+            </h1>
+            <p style={{ color: '#9ca3af', fontSize: '14px', margin: 0 }}>{students.length} students enrolled</p>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <button id="add-student-btn" className="btn" style={{ background: 'var(--primary)', color: 'white', border: 'none', boxShadow: '0 0 15px var(--primary)', fontWeight: 700 }} onClick={() => setShowModal(true)}>
+              <FiUserPlus /> Add Student
+            </button>
+          </div>
         </div>
-        <button id="add-student-btn" className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <FiUserPlus /> Add Student
-        </button>
       </div>
 
       <div className="card">
@@ -162,9 +188,11 @@ export default function Students() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{
                         width: 34, height: 34, borderRadius: '50%',
-                        background: `linear-gradient(135deg, var(--primary), var(--secondary))`,
+                        background: `linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%)`,
+                        color: '#ffffff',
+                        boxShadow: '0 4px 12px var(--primary)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 12, fontWeight: 700, flexShrink: 0
+                        fontSize: 14, fontWeight: 800, flexShrink: 0, textTransform: 'uppercase'
                       }}>
                         {s.user?.fullName?.charAt(0) || '?'}
                       </div>
@@ -188,6 +216,9 @@ export default function Students() {
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => { setSelectedStudent(s); setShowViewModal(true); }}>
+                        <FiEye />
+                      </button>
                       <button className="btn btn-primary btn-sm" onClick={() => handleEdit(s)}>
                         <FiEdit />
                       </button>
@@ -285,6 +316,48 @@ export default function Students() {
                   }} 
                 />
               </div>
+              <div className="sms-form-group">
+                <label className="sms-label">Student Aadhar Pic</label>
+                <input 
+                  type="file" 
+                  className="sms-input" 
+                  accept="image/*"
+                  onChange={async e => {
+                    if (e.target.files && e.target.files[0]) {
+                      const formData = new FormData();
+                      formData.append('file', e.target.files[0]);
+                      try {
+                        const res = await uploadFile(formData);
+                        setForm({ ...form, studentAadharPic: res.data.url });
+                      } catch (err) {
+                        setError('Failed to upload image');
+                      }
+                    }
+                  }} 
+                />
+                {form.studentAadharPic && <div style={{marginTop: 5}}><a href={form.studentAadharPic} target="_blank" rel="noreferrer" style={{fontSize: 12, color: 'var(--primary)'}}>View Uploaded Image</a></div>}
+              </div>
+              <div className="sms-form-group">
+                <label className="sms-label">Parent Aadhar Pic</label>
+                <input 
+                  type="file" 
+                  className="sms-input" 
+                  accept="image/*"
+                  onChange={async e => {
+                    if (e.target.files && e.target.files[0]) {
+                      const formData = new FormData();
+                      formData.append('file', e.target.files[0]);
+                      try {
+                        const res = await uploadFile(formData);
+                        setForm({ ...form, parentAadharPic: res.data.url });
+                      } catch (err) {
+                        setError('Failed to upload image');
+                      }
+                    }
+                  }} 
+                />
+                {form.parentAadharPic && <div style={{marginTop: 5}}><a href={form.parentAadharPic} target="_blank" rel="noreferrer" style={{fontSize: 12, color: 'var(--primary)'}}>View Uploaded Image</a></div>}
+              </div>
             </div>
             <div className="sms-modal-footer">
               <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
@@ -293,6 +366,103 @@ export default function Students() {
               </button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {showViewModal && selectedStudent && (
+        <Modal title="Student Details" onClose={() => setShowViewModal(false)}>
+          <div style={{ padding: '10px 0' }}>
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', alignItems: 'center' }}>
+               <div style={{
+                  width: 60, height: 60, borderRadius: '50%',
+                  background: `linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%)`,
+                  color: '#ffffff',
+                  boxShadow: '0 4px 12px var(--primary)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 24, fontWeight: 800, textTransform: 'uppercase'
+                }}>
+                  {selectedStudent.user?.fullName?.charAt(0) || '?'}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{selectedStudent.user?.fullName}</h3>
+                  <div style={{ color: 'var(--text-muted)' }}>@{selectedStudent.user?.username}</div>
+                </div>
+            </div>
+            
+            <div className="grid-2">
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Email</div>
+                <div style={{ fontWeight: 500 }}>{selectedStudent.user?.email}</div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Phone Number</div>
+                <div style={{ fontWeight: 500 }}>{selectedStudent.user?.phoneNumber || '—'}</div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Roll Number</div>
+                <div style={{ fontWeight: 500 }}>{selectedStudent.rollNumber || '—'}</div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Admission Number</div>
+                <div style={{ fontWeight: 500 }}>{selectedStudent.admissionNumber || '—'}</div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Class</div>
+                <div style={{ fontWeight: 500 }}>{selectedStudent.schoolClass?.className || '—'}</div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Date of Birth</div>
+                <div style={{ fontWeight: 500 }}>{selectedStudent.dateOfBirth || '—'}</div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Date of Joining</div>
+                <div style={{ fontWeight: 500 }}>{selectedStudent.dateOfJoining || '—'}</div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Parent Name</div>
+                <div style={{ fontWeight: 500 }}>{selectedStudent.parentName || '—'}</div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Parent Phone</div>
+                <div style={{ fontWeight: 500 }}>{selectedStudent.parentPhone || '—'}</div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <h4 style={{ marginBottom: 10, borderBottom: '1px solid var(--border)', paddingBottom: 5 }}>Aadhar Cards</h4>
+              <div className="grid-2">
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 5 }}>Student Aadhar</div>
+                  {selectedStudent.studentAadharPic ? (
+                    <img src={selectedStudent.studentAadharPic} alt="Student Aadhar" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border)' }} />
+                  ) : (
+                    <div style={{ padding: 20, background: 'var(--background)', borderRadius: 8, textAlign: 'center', color: 'var(--text-muted)' }}>No Image</div>
+                  )}
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 5 }}>Parent Aadhar</div>
+                  {selectedStudent.parentAadharPic ? (
+                    <img src={selectedStudent.parentAadharPic} alt="Parent Aadhar" style={{ width: '100%', borderRadius: 8, border: '1px solid var(--border)' }} />
+                  ) : (
+                    <div style={{ padding: 20, background: 'var(--background)', borderRadius: 8, textAlign: 'center', color: 'var(--text-muted)' }}>No Image</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="sms-modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowViewModal(false)}>Close</button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setShowViewModal(false);
+                handleEdit(selectedStudent);
+              }}
+            >
+              <FiEdit style={{ marginRight: 6 }} /> Edit Student
+            </button>
+          </div>
         </Modal>
       )}
     </div>

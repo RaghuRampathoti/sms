@@ -33,10 +33,14 @@ export default api;
 export const login = (data) => api.post('/auth/login', data);
 export const signup = (data) => api.post('/auth/signup', data);
 
+// Uploads
+export const uploadFile = (data) => api.post('/upload', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+
 // Students
 export const getStudents = () => api.get('/students');
 export const getStudentsByClass = (classId) => api.get(`/students/class/${classId}`);
 export const getStudentById = (id) => api.get(`/students/${id}`);
+export const getMyStudentProfile = () => api.get('/students/my');
 export const updateStudent = (id, data) => api.put(`/students/${id}`, data);
 export const deleteStudent = (id) => api.delete(`/students/${id}`);
 
@@ -66,6 +70,7 @@ export const getStudentAttendance = (studentId) => api.get(`/attendance/student/
 export const saveTeacherAttendance = (data) => api.post('/attendance/teacher', data);
 export const getTeacherAttendance = (date) => api.get(`/attendance/teacher?date=${date}`);
 export const getDailyReportUrl = (classId, date) => `${API_BASE}/attendance/report/daily?classId=${classId}&date=${date}`;
+export const downloadDailyReport = (classId, date) => api.get('/attendance/report/daily', { params: { classId, date }, responseType: 'blob' });
 export const getMonthlyReportUrl = (studentId, month, year) => `${API_BASE}/attendance/report/monthly?studentId=${studentId}&month=${month}&year=${year}`;
 
 // Leaves
@@ -106,6 +111,33 @@ export const getTimetableByClass = (classId) => api.get(`/timetable/class/${clas
 export const getTimetableByTeacher = (teacherId) => api.get(`/timetable/teacher/${teacherId}`);
 export const createTimetable = (data) => api.post('/timetable', data);
 export const deleteTimetable = (id) => api.delete(`/timetable/${id}`);
+export const generateFirstPeriods = (classId) => api.post(`/timetable/generate-first-periods/${classId}`);
 
 // Dashboard
 export const getDashboardStats = () => api.get('/dashboard/stats');
+
+// Academic Years
+export const getAcademicYears = () => api.get('/academic-years');
+export const createAcademicYear = (data) => api.post('/academic-years', data);
+export const updateAcademicYear = (id, data) => api.put(`/academic-years/${id}`, data);
+export const deleteAcademicYear = (id) => api.delete(`/academic-years/${id}`);
+
+// Promotions
+export const getEligibleForPromotion = (academicYearId, classId) => api.get('/promotions/eligible', { params: { academicYearId, classId } });
+export const promoteStudents = (data) => api.post('/promotions/promote', data);
+
+// Alumni
+export const getAlumni = () => api.get('/alumni');
+export const getAlumniById = (id) => api.get(`/alumni/${id}`);
+export const createAlumni = (data) => api.post('/alumni', data);
+export const getAlumniCandidates = (academicYearId, classId) => api.get('/alumni/candidates', { params: { academicYearId, classId } });
+export const getAlumniCandidatesByYear = (year) => api.get('/alumni/candidates/by-year', { params: { year } });
+export const getAlumniCandidatesByYearAndClass = (year, className) => api.get('/alumni/candidates/by-year-class', { params: { year, className } });
+export const getAlumniCandidatesByYearIdAndClass = (academicYearId, className) => api.get('/alumni/candidates/by-year-id-class', { params: { academicYearId, className } });
+export const getAlumniCandidatesByClass = (className) => api.get('/alumni/candidates/by-class', { params: { className } });
+export const getAlumniCandidatesByDates = (startDate, endDate) => api.get('/alumni/candidates/by-dates', { params: { startDate, endDate } });
+export const bulkTransferAlumni = (data) => api.post('/alumni/bulk-transfer', data);
+export const updateAlumni = (id, data) => api.put(`/alumni/${id}`, data);
+export const deleteAlumni = (id) => api.delete(`/alumni/${id}`);
+export const renameAlumniFolder = (oldName, newName) => api.put('/alumni/folder/rename', null, { params: { oldName, newName } });
+
