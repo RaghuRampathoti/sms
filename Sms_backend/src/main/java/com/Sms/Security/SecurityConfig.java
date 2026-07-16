@@ -57,19 +57,22 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Read allowed origins from env variable (comma-separated), fallback to localhost for dev
-        String allowedOriginsEnv = System.getenv("ALLOWED_ORIGINS");
-        java.util.List<String> allowedOrigins;
-        if (allowedOriginsEnv != null && !allowedOriginsEnv.isBlank()) {
-            allowedOrigins = Arrays.asList(allowedOriginsEnv.split(","));
-        } else {
-            allowedOrigins = Arrays.asList(
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "http://localhost:4173"
-            );
+        // Always allow localhost for local development
+        java.util.List<String> patterns = new java.util.ArrayList<>(Arrays.asList(
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://localhost:4173"
+        ));
+
+        // Add extra origins from env variable (comma-separated) — set on Render:
+        // ALLOWED_ORIGINS=https://your-app.vercel.app,https://*.vercel.app
+        String extraOrigins = System.getenv("ALLOWED_ORIGINS");
+        if (extraOrigins != null && !extraOrigins.isBlank()) {
+            patterns.addAll(Arrays.asList(extraOrigins.split(",")));
         }
-        configuration.setAllowedOriginPatterns(allowedOrigins);
+
+        // setAllowedOriginPatterns supports wildcards like https://*.vercel.app
+        configuration.setAllowedOriginPatterns(patterns);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With"));
         configuration.setExposedHeaders(Collections.singletonList("Authorization"));
