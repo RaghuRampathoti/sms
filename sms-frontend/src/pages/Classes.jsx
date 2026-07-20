@@ -4,7 +4,7 @@ import {
   getSubjects, createSubject, deleteSubject, updateSubject,
   getTeachers, getAcademicYears
 } from '../api';
-import { FiPlus, FiTrash2, FiX, FiEdit, FiLayers } from 'react-icons/fi';
+import { FiPlus, FiTrash2, FiX, FiEdit, FiLayers, FiFolder, FiArrowLeft } from 'react-icons/fi';
 
 function Modal({ title, onClose, children }) {
   return (
@@ -33,6 +33,7 @@ export default function Classes() {
   const [subjectForm, setSubjectForm] = useState({ subjectName: '', subjectCode: '', schoolClass: { id: '' }, teacher: { id: '' } });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [selectedSubjectClassId, setSelectedSubjectClassId] = useState(null);
 
   const handleEditClass = (c) => {
     setClassForm({
@@ -136,7 +137,7 @@ export default function Classes() {
         {['classes', 'subjects'].map(t => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => { setTab(t); setSelectedSubjectClassId(null); }}
             style={{
               padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer',
               fontSize: 13.5, fontWeight: 600, color: tab === t ? 'var(--primary-light)' : 'var(--text-muted)',
@@ -210,45 +211,73 @@ export default function Classes() {
       )}
 
       {tab === 'subjects' && (
-        <div className="card">
-          <table className="sms-table">
-            <thead>
-              <tr><th>#</th><th>Subject</th><th>Code</th><th>Class</th><th>Teacher</th><th>Actions</th></tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40 }}><div className="spinner" /></td></tr>
-              ) : subjects.length === 0 ? (
-                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No subjects found. Add one!</td></tr>
-              ) : subjects.map((s, i) => (
-                <tr key={s.id}>
-                  <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
-                  <td style={{ fontWeight: 600 }}>{s.subjectName}</td>
-                  <td><span className="badge badge-warning">{s.subjectCode}</span></td>
-                  <td>{s.schoolClass?.className ? <span className="badge badge-primary">{s.schoolClass.className}</span> : '—'}</td>
-                  <td style={{ fontSize: 13 }}>{s.teacher?.user?.fullName || '—'}</td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-primary btn-sm" onClick={() => handleEditSubject(s)}>
-                        <FiEdit />
-                      </button>
-                      <button className="btn btn-danger btn-sm" onClick={async () => {
-                        try {
-                          await deleteSubject(s.id);
-                          load();
-                        } catch (err) {
-                          console.error('Failed to delete subject:', err);
-                        }
-                      }}>
-                        <FiTrash2 />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+        <>
+          {loading ? (
+            <div className="card" style={{ textAlign: 'center', padding: 40 }}><div className="spinner" /></div>
+          ) : subjects.length === 0 ? (
+            <div className="card" style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>No subjects found. Add one!</div>
+          ) : !selectedSubjectClassId ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
+              {Object.entries(
+                subjects.reduce((acc, s) => {
+                  const classId = s.schoolClass?.id || 'unassigned';
+                  if (!acc[classId]) acc[classId] = { className: s.schoolClass?.className || 'Unassigned', subjects: [] };
+                  acc[classId].subjects.push(s);
+                  return acc;
+                }, {})
+              ).map(([classId, group]) => (
+                <div key={classId} className="card" style={{ cursor: 'pointer', textAlign: 'center', padding: '30px 20px', transition: 'transform 0.2s, box-shadow 0.2s' }} onClick={() => setSelectedSubjectClassId(classId)} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                  <div style={{ fontSize: '48px', color: 'var(--primary)', marginBottom: '15px' }}><FiFolder /></div>
+                  <h3 style={{ margin: '0 0 5px 0', fontSize: '18px', fontWeight: 600 }}>{group.className}</h3>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '14px' }}>{group.subjects.length} Subject{group.subjects.length !== 1 && 's'}</p>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          ) : (
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 20 }}>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSelectedSubjectClassId(null)}>
+                  <FiArrowLeft /> Back to Folders
+                </button>
+                <h3 style={{ margin: 0, fontSize: 18 }}>
+                  {subjects.find(s => (s.schoolClass?.id || 'unassigned').toString() === selectedSubjectClassId)?.schoolClass?.className || 'Unassigned'} Subjects
+                </h3>
+              </div>
+              <table className="sms-table">
+                <thead>
+                  <tr><th>#</th><th>Subject</th><th>Code</th><th>Teacher</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                  {subjects.filter(s => (s.schoolClass?.id || 'unassigned').toString() === selectedSubjectClassId).map((s, i) => (
+                    <tr key={s.id}>
+                      <td style={{ color: 'var(--text-muted)' }}>{i + 1}</td>
+                      <td style={{ fontWeight: 600 }}>{s.subjectName}</td>
+                      <td><span className="badge badge-warning">{s.subjectCode}</span></td>
+                      <td style={{ fontSize: 13 }}>{s.teacher?.user?.fullName || '—'}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button className="btn btn-primary btn-sm" onClick={() => handleEditSubject(s)}>
+                            <FiEdit />
+                          </button>
+                          <button className="btn btn-danger btn-sm" onClick={async () => {
+                            try {
+                              await deleteSubject(s.id);
+                              load();
+                            } catch (err) {
+                              console.error('Failed to delete subject:', err);
+                            }
+                          }}>
+                            <FiTrash2 />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
 
       {showClassModal && (

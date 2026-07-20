@@ -8,6 +8,7 @@ import java.util.List;
 @Repository
 public interface ExamRepository extends JpaRepository<Exam, Long> {
     List<Exam> findBySchoolClassId(Long classId);
+
     List<Exam> findBySchoolClassIdAndSubjectId(Long classId, Long subjectId);
 
     @org.springframework.data.jpa.repository.Modifying

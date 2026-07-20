@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getStudents, deleteStudent, signup, getClasses, updateStudent, uploadFile } from '../api';
-import { FiUserPlus, FiTrash2, FiSearch, FiX, FiEdit, FiEye } from 'react-icons/fi';
+import { FiUserPlus, FiTrash2, FiSearch, FiX, FiEdit, FiEye, FiFolder, FiArrowLeft } from 'react-icons/fi';
 
 function Modal({ title, onClose, children }) {
   return (
@@ -28,7 +28,7 @@ export default function Students() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [classFilter, setClassFilter] = useState('');
+  const [selectedClassView, setSelectedClassView] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -100,7 +100,7 @@ export default function Students() {
     s.user?.username?.toLowerCase().includes(search.toLowerCase()) ||
     s.rollNumber?.toLowerCase().includes(search.toLowerCase()) ||
     s.admissionNumber?.toLowerCase().includes(search.toLowerCase())) &&
-    (classFilter === '' || s.schoolClass?.id === Number(classFilter))
+    (selectedClassView ? s.schoolClass?.id === selectedClassView.id : true)
   );
 
   return (
@@ -136,34 +136,63 @@ export default function Students() {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-header">
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: 280 }}>
-              <FiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input
-                id="student-search"
-                className="sms-input"
-                style={{ paddingLeft: 36 }}
-                placeholder="Search students…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
-            <select 
-              className="sms-input sms-select" 
-              style={{ width: '200px' }}
-              value={classFilter} 
-              onChange={e => setClassFilter(e.target.value)}
-            >
-              <option value="">All Classes</option>
-              {classes.map(c => <option key={c.id} value={c.id}>{c.className}</option>)}
-            </select>
+      {!selectedClassView ? (
+        <div className="card">
+          <div className="card-header">
+            <h3 style={{ margin: 0 }}>Classes Overview</h3>
           </div>
-          <span className="badge badge-info">{filtered.length} results</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px', padding: '20px' }}>
+            {classes.map(c => {
+               const classStudents = students.filter(s => s.schoolClass?.id === c.id);
+               return (
+                 <div 
+                   key={c.id} 
+                   style={{
+                     border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', cursor: 'pointer',
+                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
+                     background: 'var(--background)', transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+                   }}
+                   onClick={() => setSelectedClassView(c)}
+                   onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)'; }}
+                   onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05)'; }}
+                 >
+                   <FiFolder size={48} color="var(--primary)" />
+                   <h3 style={{ margin: 0, fontSize: '1.2rem' }}>{c.className}</h3>
+                   <span className="badge badge-info">{classStudents.length} Students</span>
+                 </div>
+               );
+            })}
+            {classes.length === 0 && !loading && (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                No classes available.
+              </div>
+            )}
+          </div>
         </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table className="sms-table">
+      ) : (
+        <div className="card">
+          <div className="card-header">
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flex: 1 }}>
+              <button className="btn btn-secondary" onClick={() => setSelectedClassView(null)}>
+                <FiArrowLeft /> Back to Classes
+              </button>
+              <h3 style={{ margin: 0, marginLeft: '10px' }}>{selectedClassView.className} Students</h3>
+              <div style={{ position: 'relative', width: 280, marginLeft: 'auto' }}>
+                <FiSearch style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  id="student-search"
+                  className="sms-input"
+                  style={{ paddingLeft: 36 }}
+                  placeholder="Search students…"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
+            <span className="badge badge-info" style={{ whiteSpace: 'nowrap' }}>{filtered.length} results</span>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="sms-table">
             <thead>
               <tr>
                 <th>#</th>
@@ -233,6 +262,7 @@ export default function Students() {
           </table>
         </div>
       </div>
+      )}
 
       {showModal && (
         <Modal title={form.id ? "Edit Student" : "Register New Student"} onClose={() => { setShowModal(false); setForm(initForm); setError(''); }}>

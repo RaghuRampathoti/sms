@@ -15,20 +15,20 @@ const navGroups = [
     ],
   },
   {
-    label: 'People',
-    items: [
-      { path: '/students', icon: <FiUsers />, label: 'Students' },
-      { path: '/teachers', icon: <FiBriefcase />, label: 'Teachers' },
-      { path: '/alumni', icon: <FiUsers />, label: 'Alumni' },
-    ],
-  },
-  {
     label: 'Academic',
     items: [
       { path: '/classes', icon: <FiBookOpen />, label: 'Classes & Subjects' },
       { path: '/timetable', icon: <FiClock />, label: 'Timetable' },
       { path: '/attendance', icon: <FiCheckSquare />, label: 'Attendance' },
       { path: '/exams', icon: <FiFileText />, label: 'Exams & Results' },
+    ],
+  },
+  {
+    label: 'People',
+    items: [
+      { path: '/students', icon: <FiUsers />, label: 'Students' },
+      { path: '/teachers', icon: <FiBriefcase />, label: 'Teachers' },
+      { path: '/alumni', icon: <FiUsers />, label: 'Alumni' },
     ],
   },
   {
